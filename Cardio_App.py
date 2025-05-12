@@ -1,21 +1,15 @@
 import streamlit as st
 
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.base            import BaseEstimator, TransformerMixin
+from sklearn.pipeline        import Pipeline
+from sklearn.compose         import ColumnTransformer
+from sklearn.preprocessing   import (OneHotEncoder,OrdinalEncoder,StandardScaler,FunctionTransformer)
 
-for cls in (BaseEstimator,TransformerMixin,Pipeline,ColumnTransformer,FunctionTransformer):
+for cls in (BaseEstimator,TransformerMixin,Pipeline,ColumnTransformer,OneHotEncoder, OrdinalEncoder,StandardScaler,FunctionTransformer):
     if not hasattr(cls, "sklearn_tags"):
-        cls.sklearn_tags = lambda self: {}
-        
-import pandas as pd
-import numpy as np
-import pickle
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.compose import ColumnTransformer
-import os
+        def _tags(self):
+            return {}
+        cls.sklearn_tags = _tags
 
 
 def calculate_bmi(weight, height):
