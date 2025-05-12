@@ -179,7 +179,7 @@ with tab2:
         if cat_col:
             fig, ax = plt.subplots()
             sns.countplot(data=df_viz, x=cat_col, ax=ax)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            plt.setp(ax.get_xticklabels(), rotation=45)
             st.pyplot(fig)
         else:
             st.warning("No categorical columns found in dataset.")
@@ -204,18 +204,18 @@ with tab2:
         elif plot_type == "Bar":
             fig, ax = plt.subplots()
             sns.barplot(data=df_viz, x=x_var, y=y_var, ax=ax, ci=None)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            plt.setp(ax.get_xticklabels(), rotation=45)
             st.pyplot(fig)
         elif plot_type == "Box":
             fig, ax = plt.subplots()
             sns.boxplot(data=df_viz, x=x_var, y=y_var, ax=ax)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            plt.setp(ax.get_xticklabels(), rotation=45)
             st.pyplot(fig)
         elif plot_type == "Grouped Bar":
             grouped = df_viz.groupby(x_var)[y_var].value_counts().unstack(fill_value=0)
             fig, ax = plt.subplots()
             grouped.plot(kind="bar", stacked=False, ax=ax)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            plt.setp(ax.get_xticklabels(), rotation=45)
             st.pyplot(fig)
 
     with viz_tab3:
