@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
 import os
-
+import sklearn
+print(sklearn.__version__)
 def calculate_bmi(weight, height):
     return weight / ((height / 100) ** 2)
 
