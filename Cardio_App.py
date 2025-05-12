@@ -1,4 +1,11 @@
 import streamlit as st
+
+# solve the error of  missing sklearn_tags on server
+from sklearn.base import BaseEstimator, TransformerMixin
+for cls in (BaseEstimator, TransformerMixin):
+    if not hasattr(cls, "sklearn_tags"):
+        cls.sklearn_tags = lambda self: {}
+        
 import pandas as pd
 import numpy as np
 import pickle
@@ -6,6 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
 import os
+
 
 def calculate_bmi(weight, height):
     return weight / ((height / 100) ** 2)
@@ -84,6 +92,7 @@ with tab1:
         alco = st.selectbox("Do you consume alcohol?", ["yes", "no"], help="Select 'yes' if you regularly consume alcohol.")
         active = st.selectbox("Are you physically active?", ["yes", "no"], help="Select 'yes' if you exercise regularly.")
         age_years = st.number_input("Age (years)", min_value=18, max_value=120, value=45, help="Enter your age in years.")
+        lifestyle_score = st.slider("Lifestyle Score (0=Poor, 10=Excellent)", 0, 10, 5, help="Rate your overall lifestyle.")
         bp_category = st.selectbox("Blood Pressure Category", [
             "Normal", "Elevated", "Hypertension Stage 1", "Hypertension Stage 2"
         ], help="Select your blood pressure category as diagnosed.")
@@ -109,6 +118,7 @@ with tab1:
             "Smoke": smoke,
             "Alcohol": alco,
             "Active": active,
+            "Lifestyle Score": lifestyle_score,
             "BP Category": bp_category,
             "BMI": f"{bmi:.2f}",
             "BMI Category": bmi_category,
@@ -133,6 +143,7 @@ with tab1:
                 "bp_category": bp_category,
                 "pulse_pressure": ap_hi - ap_lo,
                 "is_obese": 1 if bmi >= 30 else 0,
+                "lifestyle_score": lifestyle_score,
                 "bmi_category": bmi_category
             }])
 
@@ -199,24 +210,11 @@ with tab2:
     col1, col2, col3 = st.columns([3, 3, 4])
 
     x_var = col1.selectbox("X-axis", df_viz.columns, key="bi_x")
-    y_var = col2.selectbox("Y-axis", df_viz.columns, key="bi_y")
-    plot_type = col3.radio("Plot Type", ["Scatter", "Bar", "Box", "Grouped Bar"], horizontal=True)
+    y_var = col2.selectbox("Y-axis", df_viz.select_dtypes(include=np.number).columns, key="bi_y")
+    hue = col3.selectbox("Color by (optional)", [None] + df_viz.columns.tolist(), key="bi_hue")
 
     fig, ax = plt.subplots()
-    if plot_type == "Scatter":
-        if np.issubdtype(df_viz[x_var].dtype, np.number) and np.issubdtype(df_viz[y_var].dtype, np.number):
-            hue_var = st.selectbox("Color By (optional)", ["None"] + df_viz.columns.tolist(), key="bi_color")
-            hue_val = hue_var if hue_var != "None" else None
-            sns.scatterplot(data=df_viz, x=x_var, y=y_var, hue=hue_val, ax=ax)
-        else:
-            st.warning("Scatter plot requires two numerical variables.")
-    elif plot_type == "Bar":
-        sns.barplot(data=df_viz, x=x_var, y=y_var, ax=ax, ci=None)
-    elif plot_type == "Box":
-        sns.boxplot(data=df_viz, x=x_var, y=y_var, ax=ax)
-    elif plot_type == "Grouped Bar":
-        grouped = df_viz.groupby(x_var)[y_var].value_counts().unstack(fill_value=0)
-        grouped.plot(kind="bar", ax=ax)
+    sns.scatterplot(data=df_viz, x=x_var, y=y_var, hue=hue, ax=ax)
     plt.setp(ax.get_xticklabels(), rotation=45)
     st.pyplot(fig)
 
