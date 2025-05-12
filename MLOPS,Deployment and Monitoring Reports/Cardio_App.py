@@ -5,8 +5,35 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
+import os
 
-# Load model, preprocessor, and feature selector
+def calculate_bmi(weight, height):
+    return weight / ((height / 100) ** 2)
+
+def get_bmi_category(bmi):
+    if bmi < 18.5:
+        return "Underweight"
+    elif bmi < 25:
+        return "Normal weight"
+    elif bmi < 30:
+        return "Overweight"
+    else:
+        return "Obese"
+
+def yesno_to_int(val):
+    return 1 if val == "yes" else 0
+
+required_files = [
+    "xgboost_best_model.json",
+    "preprocessor.pkl",
+    "feature_selector.pkl",
+    "cleaned_data.csv"
+]
+missing_files = [f for f in required_files if not os.path.exists(f)]
+if missing_files:
+    st.error(f"❌ Missing required file(s): {', '.join(missing_files)}. Please ensure all files are present in the app directory.")
+    st.stop()
+
 @st.cache_resource
 def load_model_and_pipeline():
     with open("xgboost_best_model.json", "rb") as f:
@@ -19,12 +46,11 @@ def load_model_and_pipeline():
 
 model, preprocessor, selector = load_model_and_pipeline()
 
-# Load dataset for visualization
 @st.cache_data
 def load_dataset():
     df = pd.read_csv("cleaned_data.csv")
     if "cardio" in df.columns:
-        df = df.drop(columns=["cardio"])  # Drop target column
+        df = df.drop(columns=["cardio"])  
     return df
 
 df_viz = load_dataset()
@@ -42,38 +68,56 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        gender = st.selectbox("Gender", options=["male", "female"])
-        height = st.number_input("Height (cm)", min_value=100.0, max_value=250.0, value=170.0)
-        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=300.0, value=70.0)
-        ap_hi = st.number_input("Systolic BP (mmHg)", min_value=80, max_value=240, value=120)
-        ap_lo = st.number_input("Diastolic BP (mmHg)", min_value=40, max_value=160, value=80)
+        gender = st.selectbox("Gender", options=["male", "female"], help="Select your biological sex.")
+        height = st.number_input("Height (cm)", min_value=100.0, max_value=250.0, value=170.0, help="Enter your height in centimeters.")
+        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=300.0, value=70.0, help="Enter your weight in kilograms.")
+        ap_hi = st.number_input("Systolic BP (mmHg)", min_value=80, max_value=240, value=120, help="Upper number of your blood pressure.")
+        ap_lo = st.number_input("Diastolic BP (mmHg)", min_value=40, max_value=160, value=80, help="Lower number of your blood pressure.")
         cholesterol = st.selectbox("Cholesterol Level", options=[1, 2, 3], index=0,
                                    help="1: Normal, 2: Above Normal, 3: Well Above Normal")
         gluc = st.selectbox("Glucose Level", options=[1, 2, 3], index=0,
                              help="1: Normal, 2: Above Normal, 3: Well Above Normal")
 
     with col2:
-        smoke = st.selectbox("Do you smoke?", ["yes", "no"])
-        alco = st.selectbox("Do you consume alcohol?", ["yes", "no"])
-        active = st.selectbox("Are you physically active?", ["yes", "no"])
-        age_years = st.number_input("Age (years)", min_value=18, max_value=120, value=45)
-        lifestyle_score = 0  # Replace with real input if used
+        smoke = st.selectbox("Do you smoke?", ["yes", "no"], help="Select 'yes' if you currently smoke.")
+        alco = st.selectbox("Do you consume alcohol?", ["yes", "no"], help="Select 'yes' if you regularly consume alcohol.")
+        active = st.selectbox("Are you physically active?", ["yes", "no"], help="Select 'yes' if you exercise regularly.")
+        age_years = st.number_input("Age (years)", min_value=18, max_value=120, value=45, help="Enter your age in years.")
+        lifestyle_score = st.slider("Lifestyle Score (0=Poor, 10=Excellent)", 0, 10, 5, help="Rate your overall lifestyle.")
         bp_category = st.selectbox("Blood Pressure Category", [
             "Normal", "Elevated", "Hypertension Stage 1", "Hypertension Stage 2"
-        ])
-        bmi_category = "Obese" if (weight / ((height / 100) ** 2) >= 30) else "Normal"
+        ], help="Select your blood pressure category as diagnosed.")
+        bmi = calculate_bmi(weight, height)
+        bmi_category = get_bmi_category(bmi)
 
-    # Derived features shown as info
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f"**BMI**: {weight / ((height / 100) ** 2):.2f}")
+        st.write(f"**BMI**: {bmi:.2f} ({bmi_category})")
     with col2:
         st.write(f"**Pulse Pressure**: {ap_hi - ap_lo}")
 
-    # Prediction Button
+    with st.expander("See your input summary"):
+        st.json({
+            "Gender": gender,
+            "Height (cm)": height,
+            "Weight (kg)": weight,
+            "Age (years)": age_years,
+            "Systolic BP": ap_hi,
+            "Diastolic BP": ap_lo,
+            "Cholesterol": cholesterol,
+            "Glucose": gluc,
+            "Smoke": smoke,
+            "Alcohol": alco,
+            "Active": active,
+            "Lifestyle Score": lifestyle_score,
+            "BP Category": bp_category,
+            "BMI": f"{bmi:.2f}",
+            "BMI Category": bmi_category,
+            "Pulse Pressure": ap_hi - ap_lo
+        })
+
     if st.button("Predict Risk", type="primary", use_container_width=True):
         try:
-            # Create DataFrame only when button is clicked
             features_df = pd.DataFrame([{
                 "gender": gender,
                 "height": height,
@@ -82,14 +126,14 @@ with tab1:
                 "ap_lo": ap_lo,
                 "cholesterol": cholesterol,
                 "gluc": gluc,
-                "smoke": smoke,
-                "alco": alco,
-                "active": active,
+                "smoke": yesno_to_int(smoke),
+                "alco": yesno_to_int(alco),
+                "active": yesno_to_int(active),
                 "age_years": age_years,
-                "bmi": weight / ((height / 100) ** 2),
+                "bmi": bmi,
                 "bp_category": bp_category,
                 "pulse_pressure": ap_hi - ap_lo,
-                "is_obese": 1 if weight / ((height / 100) ** 2) >= 30 else 0,
+                "is_obese": 1 if bmi >= 30 else 0,
                 "lifestyle_score": lifestyle_score,
                 "bmi_category": bmi_category
             }])
