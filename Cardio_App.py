@@ -24,10 +24,10 @@ def yesno_to_int(val):
     return 1 if val == "yes" else 0
 
 required_files = [
-    "xgboost_best_model.json",
-    "preprocessor.pkl",
-    "feature_selector.pkl",
-    "cleaned_data.csv"
+    "MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.json",
+    "MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl",
+    "MLOPS_Deployment_and_Monitoring_Reports/feature_selector.pkl",
+    "MLOPS_Deployment_and_Monitoring_Reports/cleaned_data.csv"
 ]
 # Check for required files in the current directory (works on Streamlit Cloud and locally)
 missing_files = [f for f in required_files if not os.path.exists(f)]
@@ -37,11 +37,11 @@ if missing_files:
 
 @st.cache_resource
 def load_model_and_pipeline():
-    with open("xgboost_best_model.json", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.json", "rb") as f:
         model = pickle.load(f)
-    with open("preprocessor.pkl", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl", "rb") as f:
         preprocessor = pickle.load(f)
-    with open("feature_selector.pkl", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/feature_selector.pkl", "rb") as f:
         selector = pickle.load(f)
     return model, preprocessor, selector
 
@@ -49,7 +49,7 @@ model, preprocessor, selector = load_model_and_pipeline()
 
 @st.cache_data
 def load_dataset():
-    df = pd.read_csv("cleaned_data.csv")
+    df = pd.read_csv("MLOPS_Deployment_and_Monitoring_Reports/cleaned_data.csv")
     if "cardio" in df.columns:
         df = df.drop(columns=["cardio"])  
     return df
