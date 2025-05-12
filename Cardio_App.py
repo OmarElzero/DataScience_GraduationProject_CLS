@@ -93,6 +93,7 @@ with tab1:
         active = st.selectbox("Are you physically active?", ["yes", "no"], help="Select 'yes' if you exercise regularly.")
         age_years = st.number_input("Age (years)", min_value=18, max_value=120, value=45, help="Enter your age in years.")
         lifestyle_score = st.slider("Lifestyle Score (0=Poor, 10=Excellent)", 0, 10, 5, help="Rate your overall lifestyle.")
+        lifestyle_score = st.slider("Lifestyle Score (0=Poor, 10=Excellent)", 0, 10, 5, help="Rate your overall lifestyle.")
         bp_category = st.selectbox("Blood Pressure Category", [
             "Normal", "Elevated", "Hypertension Stage 1", "Hypertension Stage 2"
         ], help="Select your blood pressure category as diagnosed.")
@@ -119,6 +120,7 @@ with tab1:
             "Alcohol": alco,
             "Active": active,
             "Lifestyle Score": lifestyle_score,
+            "Lifestyle Score": lifestyle_score,
             "BP Category": bp_category,
             "BMI": f"{bmi:.2f}",
             "BMI Category": bmi_category,
@@ -143,6 +145,7 @@ with tab1:
                 "bp_category": bp_category,
                 "pulse_pressure": ap_hi - ap_lo,
                 "is_obese": 1 if bmi >= 30 else 0,
+                "lifestyle_score": lifestyle_score,
                 "lifestyle_score": lifestyle_score,
                 "bmi_category": bmi_category
             }])
