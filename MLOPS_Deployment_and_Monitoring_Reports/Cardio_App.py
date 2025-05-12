@@ -29,9 +29,8 @@ required_files = [
     "feature_selector.pkl",
     "cleaned_data.csv"
 ]
-base_dir = "/root/DataScience_GraduationProject_CLS/MLOPS_Deployment_and_Monitoring_Reports"
-
-missing_files = [f for f in required_files if not os.path.exists(os.path.join(base_dir, f))]
+# Check for required files in the current directory (works on Streamlit Cloud and locally)
+missing_files = [f for f in required_files if not os.path.exists(f)]
 if missing_files:
     st.error(f"❌ Missing required file(s): {', '.join(missing_files)}. Please ensure all files are present in the app directory.")
     st.stop()
