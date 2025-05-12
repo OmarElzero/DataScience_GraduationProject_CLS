@@ -25,7 +25,7 @@ def yesno_to_int(val):
     return 1 if val == "yes" else 0
 
 required_files = [
-    "MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.json",
+    "MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.pkl",
     "MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl",
     "MLOPS_Deployment_and_Monitoring_Reports/feature_selector.pkl",
     "MLOPS_Deployment_and_Monitoring_Reports/cleaned_data.csv"
@@ -38,7 +38,7 @@ if missing_files:
 
 @st.cache_resource
 def load_model_and_pipeline():
-    with open("MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.json", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.pkl", "rb") as f:
         model = pickle.load(f)
     with open("MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl", "rb") as f:
         preprocessor = pickle.load(f)
@@ -62,7 +62,7 @@ st.title("🫀 Cardiovascular Disease Risk Predictor")
 st.markdown("Use the tabs below to explore predictions or visualize data.")
 
 # Tabs
-tab1, tab2 = st.tabs(["Predict Risk", "Data Visualizations"])
+tab1, tab2 = st.tabs(["Predict Risk", "Dashboard"])
 
 with tab1:
     st.markdown("### 🩺 Enter your health information:")
@@ -156,80 +156,87 @@ with tab1:
         except Exception as e:
             st.error(f"❌ An error occurred: {str(e)}")
 
-# Tab 2: Data Visualizations
+# Tab 2: Dashboard
 with tab2:
-    st.markdown("### 📊 Data Visualizations")
-    st.markdown("Explore univariate, bivariate, and multivariate analysis below.")
+    st.markdown("## 📊 Dashboard")
+    # --- Overview Metrics ---
+    num_rows, num_cols = df_viz.shape
+    num_numerical = len(df_viz.select_dtypes(include=np.number).columns)
+    num_categorical = len(df_viz.select_dtypes(include=['object', 'category']).columns)
 
-    viz_tab1, viz_tab2, viz_tab3 = st.tabs(["Univariate Analysis", "Bivariate Analysis", "Multivariate Analysis"])
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Rows", f"{num_rows}")
+    m2.metric("Numerical Features", f"{num_numerical}")
+    m3.metric("Categorical Features", f"{num_categorical}")
 
-    with viz_tab1:
-        st.markdown("#### 🔹 Numerical Variables Distribution")
-        num_col = st.selectbox("Select numerical variable", df_viz.select_dtypes(include=np.number).columns.tolist(), key="univar_num")
+    st.markdown("---")
+
+    # --- Univariate Section ---
+    st.subheader("🔹 Univariate Distributions")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**Numerical**")
+        num_col = st.selectbox("Select a numerical column", df_viz.select_dtypes(include=np.number).columns, key="uni_num")
         fig, ax = plt.subplots()
         sns.histplot(df_viz[num_col], kde=True, ax=ax)
         st.pyplot(fig)
 
-        st.markdown("#### 🔸 Categorical Variables Distribution")
-
+    with col2:
+        st.markdown("**Categorical**")
         obj_cols = df_viz.select_dtypes(include='object').columns.tolist()
         cat_cols = df_viz.select_dtypes(include='category').columns.tolist()
-        combined_cat_cols = obj_cols + cat_cols if obj_cols or cat_cols else []
-
-        cat_col = st.selectbox("Select categorical variable", combined_cat_cols, key="univar_cat") if combined_cat_cols else None
-        if cat_col:
+        combined_cat_cols = obj_cols + cat_cols
+        if combined_cat_cols:
+            cat_col = st.selectbox("Select a categorical column", combined_cat_cols, key="uni_cat")
             fig, ax = plt.subplots()
             sns.countplot(data=df_viz, x=cat_col, ax=ax)
             plt.setp(ax.get_xticklabels(), rotation=45)
             st.pyplot(fig)
         else:
-            st.warning("No categorical columns found in dataset.")
+            st.warning("No categorical variables found.")
 
-    with viz_tab2:
-        st.markdown("#### 🔄 Bivariate Relationships")
-        cols = df_viz.columns.tolist()
-        x_var = st.selectbox("X-axis", cols, index=0, key="bi_x")
-        y_var = st.selectbox("Y-axis", cols, index=1, key="bi_y")
+    st.markdown("---")
 
-        plot_type = st.radio("Plot Type", ["Scatter", "Bar", "Box", "Grouped Bar"], horizontal=True)
+    # --- Bivariate Section ---
+    st.subheader("🔄 Bivariate Relationships")
+    col1, col2, col3 = st.columns([3, 3, 4])
 
-        if plot_type == "Scatter":
-            if np.issubdtype(df_viz[x_var].dtype, np.number) and np.issubdtype(df_viz[y_var].dtype, np.number):
-                selected_hue = st.selectbox("Color by (optional)", ["None"] + cols, key="bi_color")
-                hue_param = selected_hue if selected_hue != "None" else None
-                fig, ax = plt.subplots()
-                sns.scatterplot(data=df_viz, x=x_var, y=y_var, hue=hue_param, ax=ax)
-                st.pyplot(fig)
-            else:
-                st.warning("Scatter plot requires both variables to be numeric.")
-        elif plot_type == "Bar":
-            fig, ax = plt.subplots()
-            sns.barplot(data=df_viz, x=x_var, y=y_var, ax=ax, ci=None)
-            plt.setp(ax.get_xticklabels(), rotation=45)
-            st.pyplot(fig)
-        elif plot_type == "Box":
-            fig, ax = plt.subplots()
-            sns.boxplot(data=df_viz, x=x_var, y=y_var, ax=ax)
-            plt.setp(ax.get_xticklabels(), rotation=45)
-            st.pyplot(fig)
-        elif plot_type == "Grouped Bar":
-            grouped = df_viz.groupby(x_var)[y_var].value_counts().unstack(fill_value=0)
-            fig, ax = plt.subplots()
-            grouped.plot(kind="bar", stacked=False, ax=ax)
-            plt.setp(ax.get_xticklabels(), rotation=45)
-            st.pyplot(fig)
+    x_var = col1.selectbox("X-axis", df_viz.columns, key="bi_x")
+    y_var = col2.selectbox("Y-axis", df_viz.columns, key="bi_y")
+    plot_type = col3.radio("Plot Type", ["Scatter", "Bar", "Box", "Grouped Bar"], horizontal=True)
 
-    with viz_tab3:
-        st.markdown("#### 📈 Multivariate Analysis")
-
-        selected_vars = st.multiselect(
-            "Select variables for correlation",
-            df_viz.select_dtypes(include=np.number).columns.tolist(),
-            default=df_viz.select_dtypes(include=np.number).columns.tolist()[:2]
-        )
-        if len(selected_vars) > 1:
-            fig, ax = plt.subplots()
-            sns.heatmap(df_viz[selected_vars].corr(), annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-            st.pyplot(fig)
+    fig, ax = plt.subplots()
+    if plot_type == "Scatter":
+        if np.issubdtype(df_viz[x_var].dtype, np.number) and np.issubdtype(df_viz[y_var].dtype, np.number):
+            hue_var = st.selectbox("Color By (optional)", ["None"] + df_viz.columns.tolist(), key="bi_color")
+            hue_val = hue_var if hue_var != "None" else None
+            sns.scatterplot(data=df_viz, x=x_var, y=y_var, hue=hue_val, ax=ax)
         else:
-            st.info("Please select at least two numerical variables for correlation matrix.")
+            st.warning("Scatter plot requires two numerical variables.")
+    elif plot_type == "Bar":
+        sns.barplot(data=df_viz, x=x_var, y=y_var, ax=ax, ci=None)
+    elif plot_type == "Box":
+        sns.boxplot(data=df_viz, x=x_var, y=y_var, ax=ax)
+    elif plot_type == "Grouped Bar":
+        grouped = df_viz.groupby(x_var)[y_var].value_counts().unstack(fill_value=0)
+        grouped.plot(kind="bar", ax=ax)
+    plt.setp(ax.get_xticklabels(), rotation=45)
+    st.pyplot(fig)
+
+    st.markdown("---")
+
+    # --- Multivariate Section ---
+    st.subheader("📈 Correlation Heatmap")
+    selected_vars = st.multiselect(
+        "Select numerical columns",
+        df_viz.select_dtypes(include=np.number).columns.tolist(),
+        default=df_viz.select_dtypes(include=np.number).columns.tolist()[:2]
+    )
+
+    if len(selected_vars) > 1:
+        fig, ax = plt.subplots()
+        sns.heatmap(df_viz[selected_vars].corr(), annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+        st.pyplot(fig)
+    else:
+        st.info("Select two or more columns to generate a heatmap.")
