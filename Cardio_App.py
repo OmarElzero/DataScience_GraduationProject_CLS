@@ -38,27 +38,31 @@ if missing_files:
 
 @st.cache_resource
 def load_model_and_pipeline():
-    with open("…/xgboost_best_model.pkl", "rb") as f:
+    folder = "MLOPS_Deployment_and_Monitoring_Reports"
+    with open(f"{folder}/xgboost_best_model.pkl", "rb") as f:
         model = pickle.load(f)
-    with open("…/preprocessor.pkl", "rb") as f:
+    with open(f"{folder}/preprocessor.pkl", "rb") as f:
         preprocessor = pickle.load(f)
-    with open("…/feature_selector.pkl", "rb") as f:
+    with open(f"{folder}/feature_selector.pkl", "rb") as f:
         selector = pickle.load(f)
-    # solve sklearntag problem function
-    def patch(est):
-        cls = est.__class__
+
+    def patch(obj):
+        cls = obj.__class__
         if not hasattr(cls, "sklearn_tags"):
             cls.sklearn_tags = lambda self: {}
-        if isinstance(est, Pipeline):
-            for _, step in est.steps:
+        from sklearn.pipeline import Pipeline
+        from sklearn.compose import ColumnTransformer
+        if isinstance(obj, Pipeline):
+            for _, step in obj.steps:
                 patch(step)
-        if isinstance(est, ColumnTransformer):
-            for _, tr, _ in est.transformers:
-                patch(tr)
-    # apply to both
+        if isinstance(obj, ColumnTransformer):
+            for _, transformer, _ in obj.transformers:
+                patch(transformer)
+
     patch(preprocessor)
     patch(selector)
     return model, preprocessor, selector
+
 
 model, preprocessor, selector = load_model_and_pipeline()
 @st.cache_data
