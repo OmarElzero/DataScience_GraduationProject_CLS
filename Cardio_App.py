@@ -1,3 +1,15 @@
+def patch_sklearn_tags():
+    from sklearn.base          import BaseEstimator, TransformerMixin
+    from sklearn.pipeline      import Pipeline
+    from sklearn.compose       import ColumnTransformer
+    from sklearn.preprocessing import ( OneHotEncoder, OrdinalEncoder, StandardScaler,FunctionTransformer)
+    for cls in (BaseEstimator, TransformerMixin,Pipeline, ColumnTransformer,OneHotEncoder,OrdinalEncoder, StandardScaler, FunctionTransformer):
+        if not hasattr(cls, "sklearn_tags"):
+            cls.sklearn_tags = lambda self: {}
+
+patch_sklearn_tags()
+
+
 import streamlit as st
 import os
 import pickle
@@ -38,31 +50,27 @@ if missing_files:
 
 @st.cache_resource
 def load_model_and_pipeline():
-    folder = "MLOPS_Deployment_and_Monitoring_Reports"
-    with open(f"{folder}/xgboost_best_model.pkl", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.pkl", "rb") as f:
         model = pickle.load(f)
-    with open(f"{folder}/preprocessor.pkl", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl", "rb") as f:
         preprocessor = pickle.load(f)
-    with open(f"{folder}/feature_selector.pkl", "rb") as f:
+    with open("MLOPS_Deployment_and_Monitoring_Reports/feature_selector.pkl", "rb") as f:
         selector = pickle.load(f)
 
     def patch(obj):
         cls = obj.__class__
         if not hasattr(cls, "sklearn_tags"):
             cls.sklearn_tags = lambda self: {}
-        from sklearn.pipeline import Pipeline
-        from sklearn.compose import ColumnTransformer
         if isinstance(obj, Pipeline):
             for _, step in obj.steps:
                 patch(step)
         if isinstance(obj, ColumnTransformer):
-            for _, transformer, _ in obj.transformers:
-                patch(transformer)
+            for _, tr, _ in obj.transformers:
+                patch(tr)
 
     patch(preprocessor)
     patch(selector)
     return model, preprocessor, selector
-
 
 model, preprocessor, selector = load_model_and_pipeline()
 @st.cache_data
