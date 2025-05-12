@@ -1,21 +1,12 @@
 import streamlit as st
-
-from sklearn.base          import BaseEstimator, TransformerMixin
-from sklearn.pipeline      import Pipeline
-from sklearn.compose       import ColumnTransformer
-from sklearn.preprocessing import ( OneHotEncoder,OrdinalEncoder,StandardScaler,FunctionTransformer)
-
-for cls in ( BaseEstimator,TransformerMixin,Pipeline,ColumnTransformer,OneHotEncoder, OrdinalEncoder, StandardScaler,FunctionTransformer):
-    if not hasattr(cls, "sklearn_tags"):
-        cls.sklearn_tags = lambda self: {}
-
-
 import os
 import pickle
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 
 
 def calculate_bmi(weight, height):
@@ -47,16 +38,29 @@ if missing_files:
 
 @st.cache_resource
 def load_model_and_pipeline():
-    with open("MLOPS_Deployment_and_Monitoring_Reports/xgboost_best_model.pkl", "rb") as f:
+    with open("…/xgboost_best_model.pkl", "rb") as f:
         model = pickle.load(f)
-    with open("MLOPS_Deployment_and_Monitoring_Reports/preprocessor.pkl", "rb") as f:
+    with open("…/preprocessor.pkl", "rb") as f:
         preprocessor = pickle.load(f)
-    with open("MLOPS_Deployment_and_Monitoring_Reports/feature_selector.pkl", "rb") as f:
+    with open("…/feature_selector.pkl", "rb") as f:
         selector = pickle.load(f)
+    # solve sklearntag problem function
+    def patch(est):
+        cls = est.__class__
+        if not hasattr(cls, "sklearn_tags"):
+            cls.sklearn_tags = lambda self: {}
+        if isinstance(est, Pipeline):
+            for _, step in est.steps:
+                patch(step)
+        if isinstance(est, ColumnTransformer):
+            for _, tr, _ in est.transformers:
+                patch(tr)
+    # apply to both
+    patch(preprocessor)
+    patch(selector)
     return model, preprocessor, selector
 
 model, preprocessor, selector = load_model_and_pipeline()
-
 @st.cache_data
 def load_dataset():
     df = pd.read_csv("MLOPS_Deployment_and_Monitoring_Reports/cleaned_data.csv")
