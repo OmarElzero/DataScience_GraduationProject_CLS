@@ -1,8 +1,11 @@
 import streamlit as st
 
-# solve the error of  missing sklearn_tags on server
 from sklearn.base import BaseEstimator, TransformerMixin
-for cls in (BaseEstimator, TransformerMixin):
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import FunctionTransformer
+
+for cls in (BaseEstimator,TransformerMixin,Pipeline,ColumnTransformer,FunctionTransformer):
     if not hasattr(cls, "sklearn_tags"):
         cls.sklearn_tags = lambda self: {}
         
