@@ -95,5 +95,3 @@ This document summarizes all analysis and visualizations performed in the projec
 - Reporting and documentation (all steps and findings are well-documented for transparency).
 
 ---
-
-**This summary should help you explain and defend every analysis and visualization in your project. If asked why a certain step or visual was used, refer to the logic above. Good luck!**
